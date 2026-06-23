@@ -1,25 +1,21 @@
-using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
+using System;
 
 public class DialogueManager : MonoBehaviour
 {
     public static DialogueManager Instance;
 
-    [Header("UI")]
-    public GameObject dialoguePanel;
+    public static event Action<string, string, Sprite> OnDialogueLineChanged;
+    public static event Action OnDialogueStarted;
+    public static event Action OnDialogueEnded;
 
-    public Image portraitImage;
-
-    public TMP_Text characterNameText;
-
-    public TMP_Text dialogueText;
-
-    private DialogueData currentDialogue;
+    private NPCDialogueData currentDialogue;
+    private NPCInteractable currentNPC;
 
     private int currentLine;
-
     private bool dialogueActive;
+
+    public bool IsDialogueActive => dialogueActive;
 
     private void Awake()
     {
@@ -29,77 +25,46 @@ public class DialogueManager : MonoBehaviour
             Destroy(gameObject);
     }
 
-    private void Start()
+    public void StartDialogue(
+        NPCInteractable npc,
+        NPCDialogueData dialogue)
     {
-        dialoguePanel.SetActive(false);
-    }
-
-    public bool IsDialogueActive()
-    {
-        return dialogueActive;
-    }
-
-    public void StartDialogue(DialogueData dialogue, bool jaConversou)
-    {
-        dialoguePanel.SetActive(true);
-
-        dialogueActive = true;
-
-        if (jaConversou)
-        {
-            portraitImage.sprite =
-                dialogue.linhas[0].portrait;
-
-            characterNameText.text =
-                dialogue.linhas[0].characterName;
-
-            dialogueText.text =
-                dialogue.resumoDialogo;
-
-            currentDialogue = null;
-
-            return;
-        }
-
+        currentNPC = npc;
         currentDialogue = dialogue;
         currentLine = 0;
+        dialogueActive = true;
+
+        OnDialogueStarted?.Invoke();
 
         ShowCurrentLine();
     }
 
-    private void ShowCurrentLine()
-    {
-        DialogueLine line =
-            currentDialogue.linhas[currentLine];
-
-        portraitImage.sprite =
-            line.portrait;
-
-        characterNameText.text =
-            line.characterName;
-
-        dialogueText.text =
-            line.text;
-    }
-
-    public void NextLine()
+    private void Update()
     {
         if (!dialogueActive)
             return;
 
-        if (currentDialogue == null)
+        if (Input.GetKeyDown(KeyCode.Space))
         {
-            EndDialogue();
-            return;
+            NextLine();
         }
+    }
 
+    private void ShowCurrentLine()
+    {
+        OnDialogueLineChanged?.Invoke(
+            currentDialogue.npcName,
+            currentDialogue.dialogueLines[currentLine],
+            currentDialogue.portrait
+        );
+    }
+
+    public void NextLine()
+    {
         currentLine++;
 
-        if (currentLine >= currentDialogue.linhas.Count)
+        if (currentLine >= currentDialogue.dialogueLines.Length)
         {
-            ObserverManager.Instance.RegisterDialogue(
-                currentDialogue.npcID);
-
             EndDialogue();
             return;
         }
@@ -111,8 +76,9 @@ public class DialogueManager : MonoBehaviour
     {
         dialogueActive = false;
 
-        dialoguePanel.SetActive(false);
+        if (currentNPC != null)
+            currentNPC.MarkDialogueCompleted();
 
-        ObserverManager.Instance.EndInteraction();
+        OnDialogueEnded?.Invoke();
     }
 }
