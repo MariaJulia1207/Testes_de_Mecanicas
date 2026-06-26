@@ -1,5 +1,6 @@
-using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 
 public class DialogueManager : MonoBehaviour
 {
@@ -7,10 +8,15 @@ public class DialogueManager : MonoBehaviour
 
     [Header("UI")]
     [SerializeField] private GameObject dialoguePanel;
-    [SerializeField] private TMP_Text npcNameText;
+
+    [SerializeField] private Image portraitImage;
+
+    [SerializeField] private TMP_Text speakerNameText;
+
     [SerializeField] private TMP_Text dialogueText;
 
     private DialogueData currentDialogue;
+
     private int currentLine;
 
     private void Awake()
@@ -30,15 +36,7 @@ public class DialogueManager : MonoBehaviour
 
         dialoguePanel.SetActive(true);
 
-        npcNameText.text = dialogue.npcName;
-
-        ShowLine();
-    }
-
-    private void ShowLine()
-    {
-        dialogueText.text =
-            currentDialogue.dialogueLines[currentLine];
+        UpdateUI();
     }
 
     public void NextLine()
@@ -51,13 +49,25 @@ public class DialogueManager : MonoBehaviour
             return;
         }
 
-        ShowLine();
+        UpdateUI();
+    }
+
+    private void UpdateUI()
+    {
+        DialogueLine line =
+            currentDialogue.dialogueLines[currentLine];
+
+        portraitImage.sprite = line.portrait;
+
+        speakerNameText.text =
+            line.speakerName;
+
+        dialogueText.text =
+            line.dialogueText;
     }
 
     private void EndDialogue()
     {
         dialoguePanel.SetActive(false);
-
-        ObserverManager.Notify("DialogueFinished");
     }
 }
